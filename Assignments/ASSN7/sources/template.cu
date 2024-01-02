@@ -12,21 +12,39 @@
 
 //@@ Insert code to implement SPMV using JDS with transposed input here
 
-__global__ void spmvWithTransposedJds(int numberOfRows, float *data,
-                                      int *columnIndices,
+// #define USING_SHARED_MEMORY 1
+
+__global__ void spmvWithTransposedJds(float *data, int *columnIndices,
                                       int *columnPointers,
                                       int *rowPermutation, float *x,
-                                      float *y) {
+                                      float *y, int numberOfRows,
+                                      int lenColumnPointers) {
+
+#ifdef USING_SHARED_MEMORY
+  extern __shared__ char sharedMemory[];
+
+  int *loadedColumnPointers = (int *)sharedMemory;
+
+  for (int i = threadIdx.x; i < lenColumnPointers; i += blockDim.x) {
+    loadedColumnPointers[i] = columnPointers[i];
+  }
+
+  __syncthreads();
+#endif
+#ifndef USING_SHARED_MEMORY
+  int *loadedColumnPointers = columnPointers;
+#endif
 
   int row = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (row < numberOfRows) {
     float dot = 0;
 
-    for (int col = 0; row < columnPointers[col + 1] - columnPointers[col];
+    for (int col = 0;
+         row < loadedColumnPointers[col + 1] - loadedColumnPointers[col];
          col++) {
-      dot += data[columnPointers[col] + row] *
-             x[columnIndices[columnPointers[col] + row]];
+      dot += data[loadedColumnPointers[col] + row] *
+             x[columnIndices[loadedColumnPointers[col] + row]];
     }
 
     y[rowPermutation[row]] = dot;
@@ -196,9 +214,10 @@ int main(int argc, char **argv) {
 
   gpuTKTime_start(Compute, "Performing CUDA computation");
   //@@ Launch the GPU Kernel here
-  spmvWithTransposedJds<<<dimGrid, dimBlock>>>(
-      numARows, deviceA, deviceColumnIndices, deviceColumnPointers,
-      deviceRowPermutation, deviceB, deviceC);
+  spmvWithTransposedJds<<<dimGrid, dimBlock,
+                          (numAColumns + 1) * sizeof(int)>>>(
+      deviceA, deviceColumnIndices, deviceColumnPointers,
+      deviceRowPermutation, deviceB, deviceC, numARows, numAColumns + 1);
 
   cudaDeviceSynchronize();
   gpuTKTime_stop(Compute, "Performing CUDA computation");
