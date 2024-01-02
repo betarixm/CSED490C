@@ -17,6 +17,59 @@
 
 //@@ INSERT CODE HERE
 
+__global__ void convolute(float *imageInput, float *mask, float *imageOutput,
+                          int imageChannels, int imageWidth, int imageHeight) {
+  __shared__ float paddedImageTile[w][w];
+
+  for (int channelIndex = 0; channelIndex < imageChannels; channelIndex++) {
+    int paddedRow = threadIdx.y;
+    int paddedCol = threadIdx.x;
+
+    int inputTileRow = paddedRow - Mask_radius;
+    int inputTileCol = paddedCol - Mask_radius;
+
+    int inputRow = blockIdx.y * TILE_WIDTH + inputTileRow;
+    int inputCol = blockIdx.x * TILE_WIDTH + inputTileCol;
+
+    int inputIdx =
+        (inputRow * imageWidth + inputCol) * imageChannels + channelIndex;
+
+    if (0 <= inputRow && inputRow < imageHeight && 0 <= inputCol &&
+        inputCol < imageWidth) {
+      paddedImageTile[paddedRow][paddedCol] = imageInput[inputIdx];
+    } else {
+      paddedImageTile[paddedRow][paddedCol] = 0;
+    }
+
+    __syncthreads();
+
+    int tileRow = threadIdx.y;
+    int tileCol = threadIdx.x;
+
+    int outputRow = blockIdx.y * TILE_WIDTH + tileRow;
+    int outputCol = blockIdx.x * TILE_WIDTH + tileCol;
+    int outputIdx =
+        (outputRow * imageWidth + outputCol) * imageChannels + channelIndex;
+
+    if (tileRow < TILE_WIDTH && tileCol < TILE_WIDTH) {
+      float result = 0;
+
+      for (int maskRow = 0; maskRow < Mask_width; maskRow++) {
+        for (int maskCol = 0; maskCol < Mask_width; maskCol++) {
+          result += paddedImageTile[tileRow + maskRow][tileCol + maskCol] *
+                    mask[maskRow * Mask_width + maskCol];
+        }
+      }
+
+      if (outputRow < imageHeight && outputCol < imageWidth) {
+        imageOutput[outputIdx] = result;
+      }
+    }
+
+    __syncthreads();
+  }
+}
+
 int main(int argc, char *argv[]) {
   gpuTKArg_t arg;
   int maskRows;
@@ -59,18 +112,34 @@ int main(int argc, char *argv[]) {
 
   gpuTKTime_start(GPU, "Doing GPU memory allocation");
   //@@ INSERT CODE HERE
+  cudaMalloc(&deviceInputImageData,
+             imageWidth * imageHeight * imageChannels * sizeof(float));
+  cudaMalloc(&deviceOutputImageData,
+             imageWidth * imageHeight * imageChannels * sizeof(float));
+  cudaMalloc(&deviceMaskData, maskRows * maskColumns * sizeof(float));
+
   gpuTKTime_stop(GPU, "Doing GPU memory allocation");
 
   gpuTKTime_start(Copy, "Copying data to the GPU");
   //@@ INSERT CODE HERE
+  cudaMemcpy(deviceInputImageData, hostInputImageData,
+             imageWidth * imageHeight * imageChannels * sizeof(float),
+             cudaMemcpyHostToDevice);
+  cudaMemcpy(deviceMaskData, hostMaskData,
+             maskRows * maskColumns * sizeof(float), cudaMemcpyHostToDevice);
+
   gpuTKTime_stop(Copy, "Copying data to the GPU");
 
   gpuTKTime_start(Compute, "Doing the computation on the GPU");
   //@@ INSERT CODE HERE
+  dim3 blockDim(w, w);
+  dim3 gridDim(ceil((float)imageWidth / TILE_WIDTH),
+               ceil((float)imageHeight / TILE_WIDTH));
 
-  //  convolution<<<dimGrid, dimBlock>>>(deviceInputImageData, deviceMaskData,
-  //                                     deviceOutputImageData, imageChannels,
-  //                                     imageWidth, imageHeight);
+  convolute<<<gridDim, blockDim>>>(deviceInputImageData, deviceMaskData,
+                                   deviceOutputImageData, imageChannels,
+                                   imageWidth, imageHeight);
+
   gpuTKTime_stop(Compute, "Doing the computation on the GPU");
 
   gpuTKTime_start(Copy, "Copying data from the GPU");
@@ -85,6 +154,9 @@ int main(int argc, char *argv[]) {
   gpuTKSolution(arg, outputImage);
 
   //@@ Insert code here
+  cudaFree(deviceInputImageData);
+  cudaFree(deviceOutputImageData);
+  cudaFree(deviceMaskData);
 
   free(hostMaskData);
   gpuTKImage_delete(outputImage);
