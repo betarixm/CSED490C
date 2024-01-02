@@ -1,20 +1,20 @@
 #include <gputk.h>
 
-#define gpuTKCheck(stmt)                                                     \
-  do {                                                                    \
-    cudaError_t err = stmt;                                               \
-    if (err != cudaSuccess) {                                             \
-      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                         \
-      gpuTKLog(ERROR, "Got CUDA error ...  ", cudaGetErrorString(err));      \
-      return -1;                                                          \
-    }                                                                     \
+#define gpuTKCheck(stmt)                                                       \
+  do {                                                                         \
+    cudaError_t err = stmt;                                                    \
+    if (err != cudaSuccess) {                                                  \
+      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                           \
+      gpuTKLog(ERROR, "Got CUDA error ...  ", cudaGetErrorString(err));        \
+      return -1;                                                               \
+    }                                                                          \
   } while (0)
 
 // Compute C = A * B
-__global__ void matrixMultiplyShared(float *A, float *B, float *C,
-                                     int numARows, int numAColumns,
-                                     int numBRows, int numBColumns,
-                                     int numCRows, int numCColumns) {
+__global__ void matrixMultiplyShared(float *A, float *B, float *C, int numARows,
+                                     int numAColumns, int numBRows,
+                                     int numBColumns, int numCRows,
+                                     int numCColumns) {
   //@@ Insert code to implement matrix multiplication here
   //@@ You have to use shared memory for this lab
 }
@@ -39,11 +39,11 @@ int main(int argc, char **argv) {
 
   gpuTKTime_start(Generic, "Importing data and creating memory on host");
   hostA = (float *)gpuTKImport(gpuTKArg_getInputFile(args, 0), &numARows,
-                            &numAColumns);
+                               &numAColumns);
   hostB = (float *)gpuTKImport(gpuTKArg_getInputFile(args, 1), &numBRows,
-                            &numBColumns);
+                               &numBColumns);
   //@@ Set numCRows and numCColumns
-  numCRows    = 0;
+  numCRows = 0;
   numCColumns = 0;
   //@@ Allocate the hostC matrix
   gpuTKTime_stop(Generic, "Importing data and creating memory on host");
