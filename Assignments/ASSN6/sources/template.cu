@@ -18,10 +18,63 @@
   } while (0)
 
 __global__ void scan(float *input, float *output, int len) {
-  //@@ Modify the body of this function to complete the functionality of
-  //@@ the scan on the device
-  //@@ You may need multiple kernel calls; write your kernels before this
-  //@@ function and call them from here
+  __shared__ float section[BLOCK_SIZE * 2];
+
+  int inputIdx = 2 * blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (inputIdx < len) {
+    section[threadIdx.x] = input[inputIdx];
+  }
+
+  if (blockDim.x + inputIdx < len) {
+    section[blockDim.x + threadIdx.x] = input[blockDim.x + inputIdx];
+  }
+
+  for (unsigned stride = 1; stride <= blockDim.x; stride *= 2) {
+    __syncthreads();
+
+    int index = (threadIdx.x + 1) * stride * 2 - 1;
+
+    if (index < BLOCK_SIZE * 2) {
+      section[index] += section[index - stride];
+    }
+  }
+
+  for (unsigned stride = BLOCK_SIZE * 2 / 4; stride > 0; stride /= 2) {
+    __syncthreads();
+
+    int index = (threadIdx.x + 1) * stride * 2 - 1;
+
+    if (index + stride < BLOCK_SIZE * 2) {
+      section[index + stride] += section[index];
+    }
+  }
+
+  __syncthreads();
+
+  if (inputIdx < len) {
+    output[inputIdx] = section[threadIdx.x];
+  }
+
+  if (blockDim.x + inputIdx < len) {
+    output[blockDim.x + inputIdx] = section[blockDim.x + threadIdx.x];
+  }
+}
+
+__global__ void merge(float *data, int len) {
+  int sectionSize = blockDim.x;
+
+  for (int sectionIdx = 1; sectionIdx < ceil(float(len) / sectionSize);
+       sectionIdx++) {
+    __syncthreads();
+
+    int dataIdx = sectionIdx * sectionSize + threadIdx.x;
+    int base = sectionIdx * sectionSize - 1;
+
+    if (0 <= base && dataIdx < len) {
+      data[dataIdx] = data[dataIdx] + data[base];
+    }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -56,11 +109,12 @@ int main(int argc, char **argv) {
                         cudaMemcpyHostToDevice));
   gpuTKTime_stop(GPU, "Copying input memory to the GPU.");
 
-  //@@ Initialize the grid and block dimensions here
+  dim3 blockDim(BLOCK_SIZE);
+  dim3 gridDim(ceil((float)numElements / blockDim.x));
 
   gpuTKTime_start(Compute, "Performing CUDA computation");
-  //@@ Modify this to complete the functionality of the scan
-  //@@ on the deivce
+  scan<<<gridDim, blockDim>>>(deviceInput, deviceOutput, numElements);
+  merge<<<1, BLOCK_SIZE * 2>>>(deviceOutput, numElements);
 
   cudaDeviceSynchronize();
   gpuTKTime_stop(Compute, "Performing CUDA computation");
