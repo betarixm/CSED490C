@@ -3,3 +3,6 @@
 build
 submit
 submit.tar.gz
+sources/Convolution
+sources/Convolution_template
+sources/dataset_generator
