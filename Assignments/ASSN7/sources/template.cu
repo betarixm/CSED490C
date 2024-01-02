@@ -1,18 +1,16 @@
 #include <gputk.h>
 
-#define gpuTKCheck(stmt)                                                     \
+#define gpuTKCheck(stmt)                                                  \
   do {                                                                    \
     cudaError_t err = stmt;                                               \
     if (err != cudaSuccess) {                                             \
-      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                         \
-      gpuTKLog(ERROR, "Got CUDA error ...  ", cudaGetErrorString(err));      \
+      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                      \
+      gpuTKLog(ERROR, "Got CUDA error ...  ", cudaGetErrorString(err));   \
       return -1;                                                          \
     }                                                                     \
   } while (0)
 
-
-//@@ Insert code to implement SPMV using JDS with transposed input here 
-
+//@@ Insert code to implement SPMV using JDS with transposed input here
 
 int main(int argc, char **argv) {
   gpuTKArg_t args;
@@ -34,24 +32,24 @@ int main(int argc, char **argv) {
 
   gpuTKTime_start(Generic, "Importing data and creating memory on host");
   hostA = (float *)gpuTKImport(gpuTKArg_getInputFile(args, 0), &numARows,
-                            &numAColumns);
+                               &numAColumns);
   hostB = (float *)gpuTKImport(gpuTKArg_getInputFile(args, 1), &numBRows,
-                            &numBColumns);
+                               &numBColumns);
   //@@ Set numCRows and numCColumns
   numCRows    = 0;
   numCColumns = 0;
   //@@ Allocate the hostC matrix
   gpuTKTime_stop(Generic, "Importing data and creating memory on host");
 
-  gpuTKLog(TRACE, "The dimensions of A are ", numARows, " x ", numAColumns);
-  gpuTKLog(TRACE, "The dimensions of B are ", numBRows, " x ", numBColumns);
+  gpuTKLog(TRACE, "The dimensions of A are ", numARows, " x ",
+           numAColumns);
+  gpuTKLog(TRACE, "The dimensions of B are ", numBRows, " x ",
+           numBColumns);
 
-  
   gpuTKTime_start(GPU, "Converting matrix A to JDS format (transposed).");
-  //@@ Create JDS format data 
+  //@@ Create JDS format data
 
   gpuTKTime_stop(GPU, "Converting matirx A to JDS format (transposed).");
-
 
   gpuTKTime_start(GPU, "Allocating GPU memory.");
   //@@ Allocate GPU memory here
@@ -75,7 +73,6 @@ int main(int argc, char **argv) {
   //@@ Copy the GPU memory back to the CPU here
 
   gpuTKTime_stop(Copy, "Copying output memory to the CPU");
-
 
   gpuTKTime_start(GPU, "Freeing GPU Memory");
   //@@ Free the GPU memory here
