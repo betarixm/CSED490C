@@ -1,12 +1,12 @@
 #include <gputk.h>
 
-#define gpuTKCheck(stmt)                                                     \
-  do {                                                                    \
-    cudaError_t err = stmt;                                               \
-    if (err != cudaSuccess) {                                             \
-      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                         \
-      return -1;                                                          \
-    }                                                                     \
+#define gpuTKCheck(stmt)                                                       \
+  do {                                                                         \
+    cudaError_t err = stmt;                                                    \
+    if (err != cudaSuccess) {                                                  \
+      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                           \
+      return -1;                                                               \
+    }                                                                          \
   } while (0)
 
 #define Mask_width 5
@@ -38,21 +38,21 @@ int main(int argc, char *argv[]) {
   arg = gpuTKArg_read(argc, argv); /* parse the input arguments */
 
   inputImageFile = gpuTKArg_getInputFile(arg, 0);
-  inputMaskFile  = gpuTKArg_getInputFile(arg, 1);
+  inputMaskFile = gpuTKArg_getInputFile(arg, 1);
 
-  inputImage   = gpuTKImport(inputImageFile);
+  inputImage = gpuTKImport(inputImageFile);
   hostMaskData = (float *)gpuTKImport(inputMaskFile, &maskRows, &maskColumns);
 
   assert(maskRows == 5);    /* mask height is fixed to 5 in this mp */
   assert(maskColumns == 5); /* mask width is fixed to 5 in this mp */
 
-  imageWidth    = gpuTKImage_getWidth(inputImage);
-  imageHeight   = gpuTKImage_getHeight(inputImage);
+  imageWidth = gpuTKImage_getWidth(inputImage);
+  imageHeight = gpuTKImage_getHeight(inputImage);
   imageChannels = gpuTKImage_getChannels(inputImage);
 
   outputImage = gpuTKImage_new(imageWidth, imageHeight, imageChannels);
 
-  hostInputImageData  = gpuTKImage_getData(inputImage);
+  hostInputImageData = gpuTKImage_getData(inputImage);
   hostOutputImageData = gpuTKImage_getData(outputImage);
 
   gpuTKTime_start(GPU, "Doing GPU Computation (memory + compute)");
@@ -68,9 +68,9 @@ int main(int argc, char *argv[]) {
   gpuTKTime_start(Compute, "Doing the computation on the GPU");
   //@@ INSERT CODE HERE
 
-//  convolution<<<dimGrid, dimBlock>>>(deviceInputImageData, deviceMaskData,
-//                                     deviceOutputImageData, imageChannels,
-//                                     imageWidth, imageHeight);
+  //  convolution<<<dimGrid, dimBlock>>>(deviceInputImageData, deviceMaskData,
+  //                                     deviceOutputImageData, imageChannels,
+  //                                     imageWidth, imageHeight);
   gpuTKTime_stop(Compute, "Doing the computation on the GPU");
 
   gpuTKTime_start(Copy, "Copying data from the GPU");
