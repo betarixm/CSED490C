@@ -18,7 +18,7 @@ __global__ void hist(unsigned int *input, unsigned int *bins, int length) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (index < length) {
-    atomicAdd(&bins[input[index] / NUM_BINS], 1);
+    atomicAdd(&bins[input[index]], 1);
   }
 }
 
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 
   gpuTKTime_start(Copy, "Copying output memory to the CPU");
   //@@ Copy the GPU memory back to the CPU here
-  cudaMemcpy(hostBins, deviceBins, inputLength * sizeof(unsigned int),
+  cudaMemcpy(hostBins, deviceBins, NUM_BINS * sizeof(unsigned int),
              cudaMemcpyDeviceToHost);
 
   CUDA_CHECK(cudaDeviceSynchronize());
