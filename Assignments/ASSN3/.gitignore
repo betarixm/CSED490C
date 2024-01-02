@@ -1,0 +1,8 @@
+.cache
+.vscode
+build
+sources/dataset_generator
+sources/StreamVectorAdd_template*
+sources/VectorAdd
+submit
+submit.tar.gz
