@@ -5,4 +5,4 @@ submit
 submit.tar.gz
 sources/dataset_generator
 sources/SparseMV
-sources/JDS_T_template
+sources/JDS_T_template*
