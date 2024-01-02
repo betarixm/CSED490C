@@ -22,6 +22,14 @@ __global__ void hist(unsigned int *input, unsigned int *bins, int length) {
   }
 }
 
+__global__ void clip(unsigned int *bins) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (index < NUM_BINS) {
+    bins[index] = min(bins[index], 127);
+  }
+}
+
 int main(int argc, char *argv[]) {
   gpuTKArg_t args;
   int inputLength;
@@ -64,9 +72,11 @@ int main(int argc, char *argv[]) {
   //@@ Perform kernel computation here
 
   dim3 blockDim(128);
-  dim3 gridDim(ceil((float)inputLength / blockDim.x));
+  dim3 histGridDim(ceil((float)inputLength / blockDim.x));
+  dim3 clipGridDim(ceil((float)NUM_BINS / blockDim.x));
 
-  hist<<<gridDim, blockDim>>>(deviceInput, deviceBins, inputLength);
+  hist<<<histGridDim, blockDim>>>(deviceInput, deviceBins, inputLength);
+  clip<<<clipGridDim, blockDim>>>(deviceBins);
 
   gpuTKTime_stop(Compute, "Performing CUDA computation");
 
