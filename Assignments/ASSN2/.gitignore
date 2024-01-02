@@ -2,7 +2,7 @@
 .vscode
 build
 sources/dataset_generator
-sources/VectorAdd_template
-sources/VectorAdd
+sources/TiledGEMM_template*
+sources/TiledMatrixMultiplication
 submit
 submit.tar.gz
