@@ -7,14 +7,14 @@
 
 #define BLOCK_SIZE 512 //@@ You can change this
 
-#define gpuTKCheck(stmt)                                                     \
-  do {                                                                    \
-    cudaError_t err = stmt;                                               \
-    if (err != cudaSuccess) {                                             \
-      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                         \
-      gpuTKLog(ERROR, "Got CUDA error ...  ", cudaGetErrorString(err));      \
-      return -1;                                                          \
-    }                                                                     \
+#define gpuTKCheck(stmt)                                                       \
+  do {                                                                         \
+    cudaError_t err = stmt;                                                    \
+    if (err != cudaSuccess) {                                                  \
+      gpuTKLog(ERROR, "Failed to run stmt ", #stmt);                           \
+      gpuTKLog(ERROR, "Got CUDA error ...  ", cudaGetErrorString(err));        \
+      return -1;                                                               \
+    }                                                                          \
   } while (0)
 
 __global__ void scan(float *input, float *output, int len) {
@@ -35,12 +35,12 @@ int main(int argc, char **argv) {
   args = gpuTKArg_read(argc, argv);
 
   gpuTKTime_start(Generic, "Importing data and creating memory on host");
-  hostInput = (float *)gpuTKImport(gpuTKArg_getInputFile(args, 0), &numElements);
+  hostInput =
+      (float *)gpuTKImport(gpuTKArg_getInputFile(args, 0), &numElements);
   hostOutput = (float *)malloc(numElements * sizeof(float));
   gpuTKTime_stop(Generic, "Importing data and creating memory on host");
 
-  gpuTKLog(TRACE, "The number of input elements in the input is ",
-        numElements);
+  gpuTKLog(TRACE, "The number of input elements in the input is ", numElements);
 
   gpuTKTime_start(GPU, "Allocating GPU memory.");
   gpuTKCheck(cudaMalloc((void **)&deviceInput, numElements * sizeof(float)));
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
   gpuTKTime_start(GPU, "Copying input memory to the GPU.");
   gpuTKCheck(cudaMemcpy(deviceInput, hostInput, numElements * sizeof(float),
-                     cudaMemcpyHostToDevice));
+                        cudaMemcpyHostToDevice));
   gpuTKTime_stop(GPU, "Copying input memory to the GPU.");
 
   //@@ Initialize the grid and block dimensions here
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 
   gpuTKTime_start(Copy, "Copying output memory to the CPU");
   gpuTKCheck(cudaMemcpy(hostOutput, deviceOutput, numElements * sizeof(float),
-                     cudaMemcpyDeviceToHost));
+                        cudaMemcpyDeviceToHost));
   gpuTKTime_stop(Copy, "Copying output memory to the CPU");
 
   gpuTKTime_start(GPU, "Freeing GPU Memory");
